@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ghar Ka CA — AI Tax Advisor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --saffron: #FF6B00;
+      --saffron-dim: #cc5500;
+      --gold: #FFB347;
+      --ink: #0E0E18;
+      --ink2: #1a1a2e;
+      --surface: #16162a;
+      --panel: #1e1e35;
+      --card: #242440;
+      --border: rgba(255,255,255,0.07);
+      --text: #e8e8f0;
+      --muted: #7777aa;
+      --green: #22c55e;
+      --red: #ef4444;
+      --blue: #60a5fa;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--ink);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ─── TOP NAV ─────────────────────────────── */
+    .nav {
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      height: 56px;
+      background: var(--ink2);
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+    .nav-logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--saffron); letter-spacing: -0.5px; }
+    .nav-sub { font-size: 12px; color: var(--muted); margin-left: 4px; }
+    .nav-spacer { flex: 1; }
+    .nav-badge { background: rgba(255,107,0,0.12); border: 1px solid rgba(255,107,0,0.3); color: var(--saffron); padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
+
+    /* ─── TAB BAR ─────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      background: var(--ink2);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      flex-shrink: 0;
+      overflow-x: auto;
+      gap: 0;
+    }
+    .tab-bar::-webkit-scrollbar { height: 0; }
+    .tab {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--saffron); border-bottom-color: var(--saffron); }
+    .tab-icon { font-size: 14px; }
+
+    /* ─── MAIN LAYOUT ─────────────────────────── */
+    .main { display: flex; flex: 1; overflow: hidden; }
+
+    /* ─── LEFT SIDEBAR (Forms List) ──────────── */
+    .sidebar {
+      width: 240px;
+      background: var(--ink2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .sidebar-section { padding: 12px 16px 4px; font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+    .sidebar-item {
+      padding: 9px 16px;
+      font-size: 13px;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-left: 3px solid transparent;
+      transition: all 0.1s;
+    }
+    .sidebar-item:hover { background: rgba(255,255,255,0.04); }
+    .sidebar-item.active { background: rgba(255,107,0,0.08); border-left-color: var(--saffron); color: var(--saffron); }
+    .sidebar-item .s-badge { margin-left: auto; font-size: 10px; background: var(--card); padding: 2px 6px; border-radius: 6px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+    /* ─── CONTENT AREA ────────────────────────── */
+    .content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+    /* ─── PANES ────────────────────────────────── */
+    .pane { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+    .pane.active { display: flex; }
+
+    /* ─── CHAT PANE ───────────────────────────── */
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .msg { display: flex; gap: 12px; max-width: 760px; }
+    .msg.user { flex-direction: row-reverse; margin-left: auto; }
+
+    .msg-avatar {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
+      margin-top: 2px;
+    }
+    .msg.bot .msg-avatar { background: linear-gradient(135deg, var(--saffron), #ff9500); }
+    .msg.user .msg-avatar { background: var(--card); }
+
+    .msg-bubble {
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 600px;
+    }
+    .msg.bot .msg-bubble { background: var(--panel); border-top-left-radius: 4px; }
+    .msg.user .msg-bubble { background: rgba(255,107,0,0.15); border: 1px solid rgba(255,107,0,0.2); border-top-right-radius: 4px; }
+
+    .msg-bubble strong { color: var(--gold); }
+    .msg-bubble .rupee { font-family: 'JetBrains Mono', monospace; color: var(--green); font-weight: 600; }
+    .msg-bubble .tax-saving { color: var(--green); font-weight: 600; }
+    .msg-bubble .tax-paying { color: var(--red); }
+    .msg-bubble table { border-collapse: collapse; margin: 10px 0; width: 100%; font-size: 13px; }
+    .msg-bubble th { background: var(--card); padding: 6px 10px; text-align: left; font-size: 11px; text-transform: uppercase; color: var(--muted); }
+    .msg-bubble td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+    .msg-bubble .rec-badge { display: inline-block; background: rgba(34,197,94,0.15); border: 1px solid rgba(34,197,94,0.3); color: var(--green); padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; margin-left: 6px; }
+    .msg-bubble ul, .msg-bubble ol { padding-left: 20px; margin: 6px 0; }
+    .msg-bubble li { margin: 4px 0; }
+    .msg-bubble hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+    .msg-bubble code { font-family: 'JetBrains Mono', monospace; background: var(--card); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+
+    .typing-indicator { display: flex; gap: 4px; padding: 14px 16px; }
+    .typing-dot { width: 6px; height: 6px; background: var(--muted); border-radius: 50%; animation: pulse 1.4s infinite; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse { 0%,80%,100%{transform:scale(1);opacity:0.4} 40%{transform:scale(1.2);opacity:1} }
+
+    .chat-input-bar {
+      padding: 16px 24px;
+      background: var(--ink2);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+    .chat-input {
+      flex: 1;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      resize: none;
+      max-height: 120px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .chat-input:focus { border-color: rgba(255,107,0,0.5); }
+    .chat-input::placeholder { color: var(--muted); }
+    .send-btn {
+      background: var(--saffron);
+      border: none;
+      border-radius: 10px;
+      width: 42px; height: 42px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+      color: white;
+    }
+    .send-btn:hover { background: var(--saffron-dim); transform: scale(1.05); }
+    .send-btn:active { transform: scale(0.97); }
+    .send-btn svg { width: 18px; height: 18px; }
+
+    /* Quick prompts */
+    .quick-prompts { display: flex; gap: 8px; padding: 0 24px 12px; flex-wrap: wrap; }
+    .qp { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 12px; color: var(--muted); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .qp:hover { border-color: var(--saffron); color: var(--saffron); }
+
+    /* ─── FORM VIEW PANE ──────────────────────── */
+    .form-pane {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+    .form-pane::-webkit-scrollbar { width: 4px; }
+    .form-pane::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .form-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding: 20px;
+      background: var(--panel);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .form-number { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--saffron); line-height: 1; }
+    .form-title { font-size: 18px; font-weight: 600; color: var(--text); }
+    .form-subtitle { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .form-meta { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .form-chip { background: var(--card); padding: 3px 10px; border-radius: 8px; font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+    .form-chip.green { background: rgba(34,197,94,0.1); color: var(--green); }
+    .form-chip.orange { background: rgba(255,107,0,0.1); color: var(--saffron); }
+
+    .eligibility-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .elig-box { background: var(--panel); border-radius: 10px; padding: 16px; border: 1px solid var(--border); }
+    .elig-box h4 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+    .elig-box.can h4 { color: var(--green); }
+    .elig-box.cannot h4 { color: var(--red); }
+    .elig-item { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--muted); margin-bottom: 6px; line-height: 1.4; }
+    .elig-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; margin-top: 1px; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+    .elig-dot.y { background: rgba(34,197,94,0.2); color: var(--green); }
+    .elig-dot.n { background: rgba(239,68,68,0.2); color: var(--red); }
+
+    .schedule-card {
+      background: var(--panel);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .schedule-header {
+      padding: 12px 16px;
+      background: var(--card);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      user-select: none;
+    }
+    .schedule-header:hover { background: rgba(255,255,255,0.06); }
+    .schedule-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .schedule-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .schedule-chevron { margin-left: auto; color: var(--muted); transition: transform 0.2s; font-size: 12px; }
+    .schedule-card.open .schedule-chevron { transform: rotate(90deg); }
+    .schedule-body { display: none; }
+    .schedule-card.open .schedule-body { display: block; }
+
+    .field-table { width: 100%; border-collapse: collapse; }
+    .field-table th { font-size: 10px; text-transform: uppercase; color: var(--muted); padding: 8px 16px; text-align: left; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.2); }
+    .field-table td { padding: 8px 16px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: top; line-height: 1.5; }
+    .field-id { font-family: 'JetBrains Mono', monospace; color: var(--blue); font-size: 11px; }
+    .field-label { color: var(--text); font-weight: 500; }
+    .field-type { background: var(--card); padding: 1px 6px; border-radius: 4px; font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+    .field-note { color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .field-source { color: rgba(255,107,0,0.7); font-size: 11px; }
+    .field-max { color: var(--green); font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+    .field-calc { color: var(--gold); font-size: 10px; font-weight: 600; text-transform: uppercase; }
+    tr:last-child td { border-bottom: none; }
+
+    /* ─── TAX CALCULATOR PANE ─────────────────── */
+    .calc-pane { flex: 1; overflow-y: auto; padding: 24px; }
+    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 900px; }
+    .calc-section { background: var(--panel); border-radius: 12px; border: 1px solid var(--border); padding: 20px; }
+    .calc-section h3 { font-size: 14px; font-weight: 600; color: var(--saffron); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .calc-field { margin-bottom: 14px; }
+    .calc-field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+    .calc-field input, .calc-field select {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .calc-field input:focus, .calc-field select:focus { border-color: rgba(255,107,0,0.5); }
+    .calc-field option { background: var(--card); }
+
+    .calc-btn {
+      width: 100%;
+      background: var(--saffron);
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      color: white;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-top: 4px;
+    }
+    .calc-btn:hover { background: var(--saffron-dim); }
+
+    .result-box {
+      background: var(--panel);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 20px;
+      grid-column: 1 / -1;
+    }
+    .result-box h3 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 16px; }
+    .regime-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .regime-card {
+      background: var(--card);
+      border-radius: 10px;
+      padding: 16px;
+      border: 2px solid transparent;
+      position: relative;
+    }
+    .regime-card.recommended { border-color: var(--green); }
+    .regime-card .rec-label {
+      position: absolute; top: -10px; left: 12px;
+      background: var(--green); color: white;
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      padding: 2px 8px; border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+    .regime-name { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+    .regime-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+    .regime-row .label { color: var(--muted); }
+    .regime-row .val { font-family: 'JetBrains Mono', monospace; color: var(--text); }
+    .regime-row.total { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 8px; }
+    .regime-row.total .val { color: var(--saffron); font-weight: 600; font-size: 14px; }
+
+    .saving-highlight { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 10px; padding: 14px 16px; text-align: center; }
+    .saving-amount { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--green); }
+    .saving-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* ─── DEDUCTIONS REFERENCE PANE ───────────── */
+    .ded-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .ded-card {
+      background: var(--panel);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 16px;
+      transition: border-color 0.15s;
+    }
+    .ded-card:hover { border-color: rgba(255,107,0,0.3); }
+    .ded-section { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--saffron); font-weight: 600; margin-bottom: 4px; }
+    .ded-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .ded-limit { font-size: 18px; font-weight: 700; font-family: 'DM Serif Display', serif; color: var(--gold); margin-bottom: 8px; }
+    .ded-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .ded-note { font-size: 11px; color: rgba(255,107,0,0.7); margin-top: 8px; font-style: italic; }
+
+    /* ─── FORM SELECTOR ───────────────────────── */
+    .selector-pane { flex: 1; overflow-y: auto; padding: 24px; }
+    .selector-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 700px; margin: 0 auto; }
+    .selector-q { background: var(--panel); border-radius: 10px; padding: 16px; border: 1px solid var(--border); }
+    .selector-q label { font-size: 13px; font-weight: 500; margin-bottom: 8px; display: block; }
+    .selector-q select, .selector-q input { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; }
+    .selector-result { grid-column: 1/-1; background: var(--panel); border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
+    .selector-form-badge { font-family: 'DM Serif Display', serif; font-size: 48px; color: var(--saffron); }
+    .selector-reason { font-size: 14px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+
+    /* general */
+    h2.pane-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text); margin-bottom: 4px; }
+    .pane-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+    .hidden { display: none !important; }
+    .tag-new { background: rgba(96,165,250,0.15); color: var(--blue); font-size: 10px; padding: 1px 6px; border-radius: 6px; font-weight: 700; vertical-align: middle; margin-left: 4px; }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .calc-grid, .eligibility-grid, .regime-comparison, .selector-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAV ─────────────────────────────────────── -->
+<nav class="nav">
+  <span class="nav-logo">🏦 Ghar Ka CA</span>
+  <span class="nav-sub">/ AI Tax Advisor India</span>
+  <div class="nav-spacer"></div>
+  <span class="nav-badge">FY 2025-26 • AY 2026-27</span>
+</nav>
+
+<!-- ── TABS ────────────────────────────────────── -->
+<div class="tab-bar">
+  <div class="tab active" data-tab="chat"><span class="tab-icon">💬</span> AI Advisor</div>
+  <div class="tab" data-tab="forms"><span class="tab-icon">📄</span> Tax Forms</div>
+  <div class="tab" data-tab="calculator"><span class="tab-icon">🧮</span> Calculator</div>
+  <div class="tab" data-tab="deductions"><span class="tab-icon">💰</span> Deductions</div>
+  <div class="tab" data-tab="selector"><span class="tab-icon">🔍</span> ITR Selector</div>
+</div>
+
+<!-- ── MAIN ─────────────────────────────────────── -->
+<div class="main">
+
+  <!-- Sidebar (Forms List) -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-section">ITR Forms</div>
+    <div class="sidebar-item active" data-form="itr1">📋 ITR-1 <span class="s-badge">SAHAJ</span></div>
+    <div class="sidebar-item" data-form="itr2">📋 ITR-2 <span class="s-badge">CG/FA</span></div>
+    <div class="sidebar-item" data-form="itr4">📋 ITR-4 <span class="s-badge">SUGAM</span></div>
+    <div class="sidebar-section">TDS / Certificates</div>
+    <div class="sidebar-item" data-form="form16">🧾 Form 16 <span class="s-badge">TDS</span></div>
+    <div class="sidebar-item" data-form="form26as">📊 Form 26AS <span class="s-badge">Credit</span></div>
+    <div class="sidebar-section">Declarations</div>
+    <div class="sidebar-item" data-form="form12bb">📝 Form 12BB <span class="s-badge">Decl</span></div>
+    <div class="sidebar-item" data-form="form15g">📝 Form 15G <span class="s-badge">No TDS</span></div>
+    <div class="sidebar-item" data-form="form15h">📝 Form 15H <span class="s-badge">Senior</span></div>
+    <div class="sidebar-section">Others</div>
+    <div class="sidebar-item" data-form="ais">📊 AIS <span class="s-badge">NEW</span></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- ── CHAT PANE ────────────────────────────── -->
+    <div class="pane active" id="pane-chat">
+      <div class="chat-messages" id="chatMessages">
+        <div class="msg bot">
+          <div class="msg-avatar">🏦</div>
+          <div class="msg-bubble">
+            <strong>Namaste! Main hoon Ghar Ka CA</strong> 🙏<br><br>
+            Main aapka AI tax advisor hoon — FY 2025-26 (AY 2026-27) ke liye.<br><br>
+            Main help kar sakta hoon:
+            <ul>
+              <li><strong>Old vs New Regime comparison</strong> — aapke liye kaunsa better hai</li>
+              <li><strong>Tax calculation</strong> — exact rupees mein</li>
+              <li><strong>80C, 80D, HRA, NPS</strong> — deductions maximize karna</li>
+              <li><strong>Form 16 / Form 26AS</strong> — kaise padhein</li>
+              <li><strong>ITR form selection</strong> — kaunsa ITR file karein</li>
+            </ul>
+            <br>Koi bhi tax sawaal puchhein! ☕
+          </div>
+        </div>
+      </div>
+
+      <div class="quick-prompts" id="quickPrompts">
+        <div class="qp" data-q="Meri salary ₹45,000/month hai. Old vs New regime mein kya difference hai?">Old vs New Regime</div>
+        <div class="qp" data-q="80C mein maximum kitna save kar sakta hoon?">80C Limit</div>
+        <div class="qp" data-q="HRA exemption kaise calculate hoti hai?">HRA Calculation</div>
+        <div class="qp" data-q="Form 16 kaise padhein? Part A aur Part B mein kya hota hai?">Form 16 Guide</div>
+        <div class="qp" data-q="Mujhe konsa ITR form file karna chahiye? Main salaried hoon, ₹35,000/month.">ITR Form</div>
+        <div class="qp" data-q="NPS mein invest karna chahiye? Kitna tax bachega?">NPS Benefits</div>
+        <div class="qp" data-q="Section 87A rebate kya hai? Zero tax kaise hoga?">87A Rebate</div>
+        <div class="qp" data-q="ITR filing ki last date kya hai AY 2026-27 ke liye?">Last Date</div>
+      </div>
+
+      <div class="chat-input-bar">
+        <textarea class="chat-input" id="chatInput" rows="1" placeholder="Tax sawaal puchhein... (e.g. meri salary 50k hai, kaunsa regime better hai?)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── FORMS PANE ──────────────────────────── -->
+    <div class="pane" id="pane-forms">
+      <div class="form-pane" id="formContent">
+        <!-- rendered by JS -->
+      </div>
+    </div>
+
+    <!-- ── CALCULATOR PANE ─────────────────────── -->
+    <div class="pane" id="pane-calculator">
+      <div class="calc-pane">
+        <h2 class="pane-title">Tax Calculator</h2>
+        <p class="pane-subtitle">Old Regime vs New Regime — exact comparison for AY 2026-27</p>
+
+        <div class="calc-grid">
+          <div class="calc-section">
+            <h3>💼 Income Details</h3>
+            <div class="calc-field"><label>Annual CTC / Gross Salary (₹)</label><input type="number" id="c_salary" placeholder="540000" /></div>
+            <div class="calc-field"><label>Monthly HRA Received (₹)</label><input type="number" id="c_hra_received" placeholder="8000" /></div>
+            <div class="calc-field"><label>Monthly Rent Paid (₹)</label><input type="number" id="c_rent" placeholder="12000" /></div>
+            <div class="calc-field"><label>City Type</label>
+              <select id="c_city">
+                <option value="metro">Metro (Delhi/Mumbai/Chennai/Kolkata) — 50%</option>
+                <option value="nonmetro">Non-Metro — 40%</option>
+              </select>
+            </div>
+            <div class="calc-field"><label>Other Income (FD interest, rent, etc.) (₹)</label><input type="number" id="c_other_income" placeholder="0" /></div>
+          </div>
+
+          <div class="calc-section">
+            <h3>💰 Deductions (Old Regime)</h3>
+            <div class="calc-field"><label>80C Investments (LIC, PPF, ELSS, EPF) — Max ₹1,50,000</label><input type="number" id="c_80c" placeholder="150000" /></div>
+            <div class="calc-field"><label>80CCD(1B) NPS Additional — Max ₹50,000</label><input type="number" id="c_nps" placeholder="50000" /></div>
+            <div class="calc-field"><label>80D Health Insurance (Self+Family) — Max ₹25,000</label><input type="number" id="c_80d_self" placeholder="25000" /></div>
+            <div class="calc-field"><label>80D Health Insurance (Parents) — Max ₹25,000/₹50,000</label><input type="number" id="c_80d_parents" placeholder="0" /></div>
+            <div class="calc-field"><label>Home Loan Interest 24(b) — Max ₹2,00,000</label><input type="number" id="c_home_loan" placeholder="0" /></div>
+            <div class="calc-field"><label>Education Loan Interest 80E (₹)</label><input type="number" id="c_80e" placeholder="0" /></div>
+            <button class="calc-btn" onclick="calculate()">Calculate Tax →</button>
+          </div>
+
+          <div class="result-box hidden" id="calcResult">
+            <h3>📊 Your Tax Analysis</h3>
+            <div class="regime-comparison">
+              <div class="regime-card" id="oldCard">
+                <div class="regime-name">🔴 Old Regime</div>
+                <div class="regime-row"><span class="label">Gross Income</span><span class="val" id="o_gross">—</span></div>
+                <div class="regime-row"><span class="label">Total Deductions</span><span class="val" id="o_deductions">—</span></div>
+                <div class="regime-row"><span class="label">Taxable Income</span><span class="val" id="o_taxable">—</span></div>
+                <div class="regime-row"><span class="label">Tax + Cess</span><span class="val" id="o_tax">—</span></div>
+                <div class="regime-row total"><span class="label">Monthly TDS</span><span class="val" id="o_monthly">—</span></div>
+              </div>
+              <div class="regime-card" id="newCard">
+                <div class="regime-name">🟢 New Regime</div>
+                <div class="regime-row"><span class="label">Gross Income</span><span class="val" id="n_gross">—</span></div>
+                <div class="regime-row"><span class="label">Standard Deduction</span><span class="val" id="n_deductions">—</span></div>
+                <div class="regime-row"><span class="label">Taxable Income</span><span class="val" id="n_taxable">—</span></div>
+                <div class="regime-row"><span class="label">Tax + Cess</span><span class="val" id="n_tax">—</span></div>
+                <div class="regime-row total"><span class="label">Monthly TDS</span><span class="val" id="n_monthly">—</span></div>
+              </div>
+            </div>
+            <div class="saving-highlight" id="savingBox">
+              <div class="saving-amount" id="savingAmount">—</div>
+              <div class="saving-label" id="savingLabel">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DEDUCTIONS PANE ─────────────────────── -->
+    <div class="pane" id="pane-deductions">
+      <div class="form-pane">
+        <h2 class="pane-title">Deductions Reference</h2>
+        <p class="pane-subtitle">All Chapter VI-A deductions + salary exemptions for AY 2026-27</p>
+        <div class="ded-grid" id="deductionGrid"></div>
+      </div>
+    </div>
+
+    <!-- ── ITR SELECTOR PANE ───────────────────── -->
+    <div class="pane" id="pane-selector">
+      <div class="selector-pane">
+        <h2 class="pane-title">ITR Form Selector</h2>
+        <p class="pane-subtitle">Answer 6 questions — we'll tell you exactly which form to file</p>
+        <div class="selector-grid">
+          <div class="selector-q"><label>Total Annual Income</label>
+            <select id="s_income">
+              <option value="low">Below ₹5 lakh</option>
+              <option value="mid" selected>₹5 – ₹50 lakh</option>
+              <option value="high">Above ₹50 lakh</option>
+            </select>
+          </div>
+          <div class="selector-q"><label>Income Source</label>
+            <select id="s_source">
+              <option value="salary">Salary / Pension only</option>
+              <option value="salary_business">Salary + Freelancing</option>
+              <option value="business">Business / Full-time Freelancing</option>
+            </select>
+          </div>
+          <div class="selector-q"><label>Capital Gains?</label>
+            <select id="s_cg">
+              <option value="none">None / Up to ₹1.25L LTCG</option>
+              <option value="above125">LTCG above ₹1.25L</option>
+              <option value="stcg">Short-term Capital Gains</option>
+            </select>
+          </div>
+          <div class="selector-q"><label>House Properties</label>
+            <select id="s_hp">
+              <option value="0">None (renting)</option>
+              <option value="1">1 Property</option>
+              <option value="2">2 Properties</option>
+              <option value="3">3+ Properties</option>
+            </select>
+          </div>
+          <div class="selector-q"><label>Are you a Director in any company?</label>
+            <select id="s_director"><option value="no">No</option><option value="yes">Yes</option></select>
+          </div>
+          <div class="selector-q"><label>Foreign Assets / Foreign Income?</label>
+            <select id="s_foreign"><option value="no">No</option><option value="yes">Yes</option></select>
+          </div>
+          <div class="selector-result" id="selectorResult">
+            <div style="text-align:center">
+              <div class="selector-form-badge" id="s_result_form">—</div>
+              <div style="font-size:16px;font-weight:600;margin-top:4px" id="s_result_name">Select options above</div>
+              <div class="selector-reason" id="s_result_reason"></div>
+              <div id="s_result_date" style="margin-top:12px;font-size:13px;color:var(--green)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────
+// ANTHROPIC API CALL
+// ─────────────────────────────────────────────────────────────────────────
+const API_KEY = typeof window !== 'undefined' && window.ANTHROPIC_KEY ? window.ANTHROPIC_KEY : '';
+
+const SYSTEM_PROMPT = `You are "Ghar Ka CA" — India's friendliest AI tax advisor. You speak in natural Hinglish (Hindi+English mix like Delhi people talk).
+
+FY 2025-26 / AY 2026-27 Tax Knowledge:
+NEW REGIME (Default): Slabs — ₹0-3L: 0%, ₹3-7L: 5%, ₹7-10L: 10%, ₹10-12L: 15%, ₹12-15L: 20%, >₹15L: 30%. Standard Deduction ₹75,000. Rebate 87A: if income ≤ ₹7L then zero tax. ONLY standard deduction & employer NPS 80CCD(2) allowed.
+OLD REGIME: Slabs — ₹0-2.5L: 0%, ₹2.5-5L: 5%, ₹5-10L: 20%, >₹10L: 30%. Standard Deduction ₹50,000. ALL deductions allowed.
+HRA: Min of (Actual HRA, Rent paid - 10% Basic, 50% Basic for metro / 40% non-metro). Metro = Delhi/Mumbai/Chennai/Kolkata.
+80C max ₹1.5L. 80CCD(1B) extra ₹50K for NPS. 80D: Self ₹25K/₹50K senior, Parents ₹25K/₹50K senior. 24(b): Home loan interest ₹2L. Health & Ed Cess: 4%.
+ITR-1: Salaried, income ≤₹50L, ≤2 house props, LTCG ≤₹1.25L. Due: 31 July 2026.
+ITR-2: Capital gains above ₹1.25L, foreign assets, director, income >₹50L.
+ITR-4: Presumptive income (freelancers, small biz).
+Form 16: Part A = TDS quarterly. Part B = salary breakup + tax computation.
+Form 26AS: Tax credit statement. Always cross-verify TDS with this.
+Form 12BB: Investment declaration to employer.
+Section 87A: Old regime — rebate ₹12,500 if income ≤₹5L. New regime — rebate ₹25,000 if income ≤₹7L.
+
+Rules:
+- Always calculate BOTH regimes when user gives salary, show exact rupees
+- Keep responses under 200 words when possible (chat format)
+- Use markdown tables for comparisons
+- Use ₹ symbol always
+- End with disclaimer: "Yeh educational info hai — complex cases mein CA se milein"
+- Be warm and conversational`;
+
+let chatHistory = [];
+
+async function callClaudeAPI(userMessage) {
+  chatHistory.push({ role: 'user', content: userMessage });
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: SYSTEM_PROMPT,
+      messages: chatHistory
+    })
+  });
+
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  const reply = data.content[0].text;
+  chatHistory.push({ role: 'assistant', content: reply });
+  return reply;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// CHAT UI
+// ─────────────────────────────────────────────────────────────────────────
+function formatMessage(text) {
+  // markdown-lite formatter
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  text = text.replace(/`(.+?)`/g, '<code>$1</code>');
+  text = text.replace(/₹[\d,]+/g, m => `<span class="rupee">${m}</span>`);
+
+  // tables
+  const lines = text.split('\n');
+  let html = ''; let inTable = false; let inList = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.startsWith('|')) {
+      if (!inTable) { html += '<table>'; inTable = true; }
+      if (line.includes('---')) { continue; }
+      const cells = line.split('|').filter(c => c.trim());
+      const isHeader = i === lines.findIndex(l => l.startsWith('|'));
+      const tag = isHeader ? 'th' : 'td';
+      html += '<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
+    } else {
+      if (inTable) { html += '</table>'; inTable = false; }
+      if (line.startsWith('- ') || line.startsWith('• ')) {
+        if (!inList) { html += '<ul>'; inList = true; }
+        html += `<li>${line.slice(2)}</li>`;
+      } else if (/^\d+\.\s/.test(line)) {
+        if (!inList) { html += '<ol>'; inList = true; }
+        html += `<li>${line.replace(/^\d+\.\s/, '')}</li>`;
+      } else {
+        if (inList) { html += inList === 'ul' ? '</ul>' : '</ol>'; inList = false; }
+        if (line === '') html += '<br>';
+        else if (line.startsWith('---')) html += '<hr>';
+        else if (line.startsWith('# ')) html += `<strong style="font-size:15px">${line.slice(2)}</strong><br>`;
+        else html += line + '<br>';
+      }
+    }
+  }
+  if (inTable) html += '</table>';
+  return html;
+}
+
+function addMessage(role, text, isHTML = false) {
+  const msgs = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.textContent = role === 'bot' ? '🏦' : '👤';
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = isHTML ? text : formatMessage(text);
+  div.appendChild(avatar);
+  div.appendChild(bubble);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return bubble;
+}
+
+function addTyping() {
+  const msgs = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'msg bot';
+  div.id = 'typingMsg';
+  const av = document.createElement('div'); av.className = 'msg-avatar'; av.textContent = '🏦';
+  const bub = document.createElement('div'); bub.className = 'msg-bubble';
+  bub.innerHTML = '<div class="typing-indicator"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
+  div.appendChild(av); div.appendChild(bub);
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = ''; input.style.height = 'auto';
+  document.getElementById('quickPrompts').classList.add('hidden');
+  addMessage('user', text);
+  addTyping();
+  try {
+    const reply = await callClaudeAPI(text);
+    document.getElementById('typingMsg')?.remove();
+    addMessage('bot', reply);
+  } catch (e) {
+    document.getElementById('typingMsg')?.remove();
+    addMessage('bot', `Ek error aa gayi: ${e.message}. Please check your API key in the server .env file.`);
+  }
+}
+
+// quick prompts
+document.querySelectorAll('.qp').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('chatInput').value = btn.dataset.q;
+    sendMessage();
+  });
+});
+
+// enter to send
+document.getElementById('chatInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+document.getElementById('chatInput').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// TAX CALCULATOR
+// ─────────────────────────────────────────────────────────────────────────
+function r(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+
+function calcOldRegimeTax(taxableIncome) {
+  let tax = 0;
+  if (taxableIncome <= 250000) tax = 0;
+  else if (taxableIncome <= 500000) tax = (taxableIncome - 250000) * 0.05;
+  else if (taxableIncome <= 1000000) tax = 12500 + (taxableIncome - 500000) * 0.20;
+  else tax = 112500 + (taxableIncome - 1000000) * 0.30;
+  // Rebate 87A
+  if (taxableIncome <= 500000) tax = 0;
+  return Math.round(tax * 1.04); // + 4% cess
+}
+
+function calcNewRegimeTax(taxableIncome) {
+  let tax = 0;
+  if (taxableIncome <= 300000) tax = 0;
+  else if (taxableIncome <= 700000) tax = (taxableIncome - 300000) * 0.05;
+  else if (taxableIncome <= 1000000) tax = 20000 + (taxableIncome - 700000) * 0.10;
+  else if (taxableIncome <= 1200000) tax = 50000 + (taxableIncome - 1000000) * 0.15;
+  else if (taxableIncome <= 1500000) tax = 80000 + (taxableIncome - 1200000) * 0.20;
+  else tax = 140000 + (taxableIncome - 1500000) * 0.30;
+  // Rebate 87A
+  if (taxableIncome <= 700000) tax = 0;
+  return Math.round(tax * 1.04); // + 4% cess
+}
+
+function calcHRA(basicSalary, hraReceived, rentPaid, cityType) {
+  if (!rentPaid || !hraReceived) return 0;
+  const a = hraReceived;
+  const b = rentPaid - (basicSalary * 0.10);
+  const c = basicSalary * (cityType === 'metro' ? 0.50 : 0.40);
+  return Math.max(0, Math.min(a, b, c));
+}
+
+function calculate() {
+  const salary = parseFloat(document.getElementById('c_salary').value) || 0;
+  const hraReceivedM = parseFloat(document.getElementById('c_hra_received').value) || 0;
+  const rentM = parseFloat(document.getElementById('c_rent').value) || 0;
+  const city = document.getElementById('c_city').value;
+  const otherIncome = parseFloat(document.getElementById('c_other_income').value) || 0;
+  const d80c = Math.min(parseFloat(document.getElementById('c_80c').value) || 0, 150000);
+  const nps = Math.min(parseFloat(document.getElementById('c_nps').value) || 0, 50000);
+  const d80dSelf = Math.min(parseFloat(document.getElementById('c_80d_self').value) || 0, 25000);
+  const d80dParents = Math.min(parseFloat(document.getElementById('c_80d_parents').value) || 0, 50000);
+  const homeLoan = Math.min(parseFloat(document.getElementById('c_home_loan').value) || 0, 200000);
+  const edu = parseFloat(document.getElementById('c_80e').value) || 0;
+
+  const gross = salary + otherIncome;
+
+  // Old Regime
+  const hraAnnual = hraReceivedM * 12;
+  const rentAnnual = rentM * 12;
+  const basicEst = salary * 0.4; // estimate basic = 40% of CTC
+  const hraExempt = calcHRA(basicEst, hraAnnual, rentAnnual, city);
+  const stdDedOld = 50000;
+  const totalDedOld = stdDedOld + hraExempt + d80c + nps + d80dSelf + d80dParents + homeLoan + edu;
+  const taxableOld = Math.max(0, gross - totalDedOld);
+  const taxOld = calcOldRegimeTax(taxableOld);
+
+  // New Regime
+  const stdDedNew = 75000;
+  const taxableNew = Math.max(0, gross - stdDedNew);
+  const taxNew = calcNewRegimeTax(taxableNew);
+
+  const better = taxOld < taxNew ? 'old' : 'new';
+  const saving = Math.abs(taxOld - taxNew);
+
+  // Update UI
+  document.getElementById('o_gross').textContent = r(gross);
+  document.getElementById('o_deductions').textContent = r(totalDedOld);
+  document.getElementById('o_taxable').textContent = r(taxableOld);
+  document.getElementById('o_tax').textContent = r(taxOld);
+  document.getElementById('o_monthly').textContent = r(taxOld / 12);
+
+  document.getElementById('n_gross').textContent = r(gross);
+  document.getElementById('n_deductions').textContent = r(stdDedNew);
+  document.getElementById('n_taxable').textContent = r(taxableNew);
+  document.getElementById('n_tax').textContent = r(taxNew);
+  document.getElementById('n_monthly').textContent = r(taxNew / 12);
+
+  const oldCard = document.getElementById('oldCard');
+  const newCard = document.getElementById('newCard');
+  oldCard.classList.remove('recommended'); newCard.classList.remove('recommended');
+  oldCard.querySelector('.rec-label')?.remove(); newCard.querySelector('.rec-label')?.remove();
+
+  const recCard = better === 'old' ? oldCard : newCard;
+  recCard.classList.add('recommended');
+  const badge = document.createElement('div'); badge.className = 'rec-label'; badge.textContent = '✓ RECOMMENDED';
+  recCard.appendChild(badge);
+
+  document.getElementById('savingAmount').textContent = r(saving) + '/year';
+  document.getElementById('savingLabel').textContent = `Choose ${better === 'old' ? 'Old Regime' : 'New Regime'} — bachoge ${r(Math.round(saving/12))}/month`;
+
+  document.getElementById('calcResult').classList.remove('hidden');
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// ITR SELECTOR
+// ─────────────────────────────────────────────────────────────────────────
+function updateSelector() {
+  const income = document.getElementById('s_income').value;
+  const source = document.getElementById('s_source').value;
+  const cg = document.getElementById('s_cg').value;
+  const hp = parseInt(document.getElementById('s_hp').value);
+  const director = document.getElementById('s_director').value;
+  const foreign = document.getElementById('s_foreign').value;
+
+  let form = 'ITR-1', name = 'SAHAJ', reason = '', date = '📅 Due: 31st July 2026';
+
+  if (foreign === 'yes') { form = 'ITR-2'; name = 'For Capital Gains & Foreign Assets'; reason = 'Foreign assets or foreign income require ITR-2.'; }
+  else if (director === 'yes') { form = 'ITR-2'; name = 'For Directors & High Income'; reason = 'Directors in companies must use ITR-2 regardless of income amount.'; }
+  else if (income === 'high') { form = 'ITR-2'; name = 'For Capital Gains & Foreign Assets'; reason = 'Total income above ₹50 lakh — ITR-1 limit exceeded.'; }
+  else if (source === 'business') { form = 'ITR-4'; name = 'SUGAM — Presumptive Taxation'; reason = 'Business / full-time freelancing income. Use ITR-4 under Section 44AD/44ADA presumptive scheme (income ≤ ₹50L). If you want to declare actual expenses, use ITR-3.'; }
+  else if (source === 'salary_business') { form = 'ITR-4'; name = 'SUGAM — Salary + Freelancing'; reason = 'Salary + freelancing/side income qualifies for ITR-4 SUGAM under presumptive scheme.'; }
+  else if (cg === 'stcg' || cg === 'above125') { form = 'ITR-2'; name = 'For Capital Gains & Foreign Assets'; reason = `Capital gains above ₹1.25L or STCG — ITR-1 can only handle LTCG up to ₹1.25L. Use ITR-2.`; }
+  else if (hp >= 3) { form = 'ITR-2'; name = 'For Capital Gains & Foreign Assets'; reason = '3+ house properties require ITR-2. ITR-1 now allows up to 2 properties (updated for AY 2026-27).'; }
+  else {
+    form = 'ITR-1'; name = 'SAHAJ — Simplest Form'; reason = '✅ You qualify for ITR-1 SAHAJ — the simplest form for salaried individuals. No complex schedules needed.';
+  }
+
+  document.getElementById('s_result_form').textContent = form;
+  document.getElementById('s_result_name').textContent = name;
+  document.getElementById('s_result_reason').textContent = reason;
+  document.getElementById('s_result_date').textContent = date;
+}
+['s_income','s_source','s_cg','s_hp','s_director','s_foreign'].forEach(id => {
+  document.getElementById(id).addEventListener('change', updateSelector);
+});
+updateSelector();
+
+// ─────────────────────────────────────────────────────────────────────────
+// DEDUCTIONS GRID
+// ─────────────────────────────────────────────────────────────────────────
+const DEDUCTIONS_DATA = [
+  { section: "80C", name: "Investments & Savings", limit: "₹1,50,000", desc: "ELSS, PPF, EPF, LIC, NSC, home loan principal, school fees, SSY, 5-yr FD", note: "Best choice: ELSS (12-15% returns, 3yr lock-in)" },
+  { section: "80CCD(1B)", name: "Additional NPS Contribution", limit: "₹50,000", desc: "Extra deduction over 80C limit for NPS Tier-1 contributions", note: "Effective total deduction: ₹2,00,000 (₹1.5L + ₹50K)" },
+  { section: "80CCD(2)", name: "Employer NPS Contribution", limit: "10% of Basic", desc: "Employer's NPS contribution — allowed even in New Regime", note: "✅ Available in New Regime too!" },
+  { section: "80D", name: "Health Insurance", limit: "₹25K – ₹1,00,000", desc: "Self+family ₹25K (₹50K if senior). Parents ₹25K (₹50K if senior citizen)", note: "Max possible: ₹1L if both you and parents are 60+" },
+  { section: "HRA — 10(13A)", name: "House Rent Allowance", limit: "Calculated", desc: "Min of: Actual HRA, Rent – 10% Basic, 50% Basic (metro) / 40% (non-metro)", note: "Landlord PAN needed if annual rent > ₹1 lakh" },
+  { section: "24(b)", name: "Home Loan Interest", limit: "₹2,00,000", desc: "Interest on home loan for self-occupied property", note: "No limit for let-out property" },
+  { section: "80E", name: "Education Loan Interest", limit: "No limit!", desc: "Interest on higher education loan — self, spouse, children", note: "Available for 8 years from first repayment" },
+  { section: "Standard Deduction", name: "Standard Deduction", limit: "₹75,000 (New) ₹50,000 (Old)", desc: "Flat deduction from salary. No proof needed whatsoever.", note: "₹75,000 in New Regime — increased from Budget 2024" },
+  { section: "80TTA", name: "Savings Interest", limit: "₹10,000", desc: "Interest from savings bank account. For non-senior citizens only.", note: "Senior citizens use 80TTB instead (₹50,000 limit)" },
+  { section: "80TTB", name: "All Interest (Senior)", limit: "₹50,000", desc: "Interest from savings + FD + RD for senior citizens (60+ years)", note: "Replaces 80TTA for senior citizens" },
+  { section: "80G", name: "Donations", limit: "50–100% varies", desc: "Donations to PM Relief Fund (100%), approved NGOs (50% with limit)", note: "Keep 80G certificate from the organization" },
+  { section: "80GG", name: "Rent (No HRA)", limit: "₹5,000/month", desc: "For salaried who do NOT receive HRA but pay rent", note: "Cannot claim both HRA exemption and 80GG" },
+  { section: "Section 87A", name: "Tax Rebate", limit: "Zero Tax Possible", desc: "Old: ₹12,500 rebate if income ≤ ₹5L. New: ₹25,000 rebate if income ≤ ₹7L", note: "New Regime: effectively zero tax up to ₹7.75L with standard deduction!" },
+  { section: "80DD", name: "Disabled Dependent", limit: "₹75K – ₹1.25L", desc: "Deduction for maintenance & treatment of disabled dependent family member", note: "₹1.25L for severe disability (80%+)" },
+  { section: "80EEA", name: "Affordable Housing Loan", limit: "₹1,50,000", desc: "Additional interest deduction for affordable housing (over 24b limit)", note: "Loan sanction date between 01/04/2019 – 31/03/2022" },
+];
+
+const grid = document.getElementById('deductionGrid');
+DEDUCTIONS_DATA.forEach(d => {
+  const card = document.createElement('div');
+  card.className = 'ded-card';
+  card.innerHTML = `
+    <div class="ded-section">${d.section}</div>
+    <div class="ded-name">${d.name}</div>
+    <div class="ded-limit">${d.limit}</div>
+    <div class="ded-desc">${d.desc}</div>
+    ${d.note ? `<div class="ded-note">💡 ${d.note}</div>` : ''}
+  `;
+  grid.appendChild(card);
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// FORMS RENDERER
+// ─────────────────────────────────────────────────────────────────────────
+const FORMS_HTML = {
+  itr1: {
+    number: "ITR-1", name: "SAHAJ", desc: "Salaried individuals & pensioners with income up to ₹50 lakh",
+    ay: "AY 2026-27", due: "31 July 2026", tags: [{ t: "Salary / Pension", c: "green" }, { t: "≤ 2 House Properties", c: "green" }, { t: "LTCG ≤ ₹1.25L", c: "orange" }, { t: "Total Income ≤ ₹50L", c: "orange" }],
+    can: ["Resident Indian only", "Income from salary or pension", "Up to 2 house properties (new for AY 2026-27)", "Interest income (FD, savings, family pension)", "LTCG u/s 112A up to ₹1.25L (no brought-forward losses)", "Agricultural income ≤ ₹5,000"],
+    cannot: ["NRI / RNOR", "Director in any company", "Held unlisted equity shares", "Foreign assets or income", "Business / professional income", "LTCG above ₹1.25L or STCG", "More than 2 house properties", "Total income above ₹50 lakh"],
+    schedules: [
+      { title: "Part A — General Information", desc: "Personal details, PAN, Aadhaar, address, tax regime selection", fields: [{ id: "PAN", label: "Permanent Account Number", type: "text", note: "Format: AAAAA9999A", source: "" }, { id: "Aadhaar", label: "Aadhaar Number (12 digits)", type: "text", note: "Mandatory to link", source: "" }, { id: "DOB", label: "Date of Birth", type: "date", note: "DD/MM/YYYY", source: "" }, { id: "Tax Regime", label: "Tax Regime Opted", type: "select", note: "New Regime is default. Need Form 10-IEA to opt old.", source: "" }, { id: "Employer Category", label: "Employer Category", type: "select", note: "GOV / PSU / PE / Others", source: "" }, { id: "Filing Status", label: "Return Filing Status", type: "select", note: "11-Original, 17-Revised, 14-Defective", source: "" }] },
+      { title: "Schedule S — Income from Salary", desc: "Salary breakup from Form 16 Part B", fields: [{ id: "salary_17_1", label: "Salary u/s 17(1)", type: "number", note: "Basic + DA + all taxable allowances", source: "Form 16 Part B" }, { id: "perquisites_17_2", label: "Perquisites u/s 17(2)", type: "number", note: "Company car, ESOP, accommodation etc.", source: "Form 16 Part B" }, { id: "profits_17_3", label: "Profits in lieu of salary u/s 17(3)", type: "number", note: "Compensation, gratuity above limit", source: "Form 16 Part B" }, { id: "gross_salary", label: "Gross Salary [17(1)+17(2)+17(3)]", type: "calculated", note: "Auto-calculated", source: "" }, { id: "exemptions_10", label: "Allowances exempt u/s 10", type: "number", note: "HRA, LTA, CEA etc.", source: "Form 16 Part B" }, { id: "standard_deduction", label: "Standard Deduction u/s 16(ia)", type: "auto", note: "₹50,000 (Old) or ₹75,000 (New)", source: "Auto" }, { id: "professional_tax", label: "Professional Tax u/s 16(iii)", type: "number", note: "State-specific, max ₹2,400/year", source: "Form 16" }, { id: "income_from_salary", label: "Income from Salary (FINAL)", type: "calculated", note: "", source: "" }] },
+      { title: "Schedule HP — House Property Income", desc: "Up to 2 house properties (expanded in AY 2026-27)", fields: [{ id: "property_type", label: "Type of Property", type: "select", note: "SOP (Self Occupied) / LOP (Let Out) / DLOP (Deemed Let Out)", source: "" }, { id: "gross_rent", label: "Gross Annual Rent (if let-out)", type: "number", note: "", source: "Rent Agreement" }, { id: "municipal_tax", label: "Municipal/Property Tax Paid", type: "number", note: "Deducted from Annual Value", source: "Tax Receipt" }, { id: "std_deduction_30", label: "Standard Deduction 30% of Annual Value", type: "auto", note: "Auto-calculated. For let-out property only.", source: "" }, { id: "interest_24b", label: "Home Loan Interest u/s 24(b)", type: "number", note: "Max ₹2L for self-occupied. No limit for let-out.", source: "Bank Interest Certificate" }, { id: "hp_income", label: "Net Income from House Property", type: "calculated", note: "Can be negative (loss set-off against salary up to ₹2L)", source: "" }] },
+      { title: "Schedule VI-A — Deductions Chapter VI-A", desc: "All deductions from gross total income", fields: [{ id: "80c", label: "80C — ELSS/PPF/EPF/LIC/NSC etc.", type: "number", note: "Max ₹1,50,000", source: "Investment Proofs / Form 16" }, { id: "80ccd1b", label: "80CCD(1B) — Additional NPS", type: "number", note: "Max ₹50,000 (over & above 80C)", source: "NPS Statement" }, { id: "80d_self", label: "80D — Health Insurance (Self+Family)", type: "number", note: "Max ₹25,000 (₹50,000 for senior)", source: "Insurance Premium Receipt" }, { id: "80d_parents", label: "80D — Health Insurance (Parents)", type: "number", note: "Max ₹25,000/₹50,000", source: "Insurance Premium Receipt" }, { id: "24b_interest", label: "Home Loan Interest 24(b)", type: "number", note: "Max ₹2,00,000", source: "Bank Certificate" }, { id: "80e", label: "80E — Education Loan Interest", type: "number", note: "No limit. 8 years.", source: "Bank Certificate" }, { id: "80tta", label: "80TTA — Savings Interest", type: "number", note: "Max ₹10,000", source: "Bank Statement" }] },
+      { title: "Part B-TTI — Tax Liability Computation", desc: "Final tax calculation — both regimes compared here", fields: [{ id: "gti", label: "Gross Total Income", type: "calculated", note: "Sum of all income heads", source: "" }, { id: "total_deductions", label: "Total Chapter VI-A Deductions", type: "calculated", note: "", source: "" }, { id: "total_income", label: "Total Taxable Income", type: "calculated", note: "GTI minus deductions", source: "" }, { id: "tax_on_income", label: "Tax on Total Income (as per slab)", type: "calculated", note: "", source: "" }, { id: "rebate_87a", label: "Rebate u/s 87A", type: "auto", note: "₹12,500 old (≤₹5L) / ₹25,000 new (≤₹7L)", source: "" }, { id: "cess_4pct", label: "Health & Education Cess @ 4%", type: "calculated", note: "", source: "" }, { id: "total_tax", label: "Total Tax Liability", type: "calculated", note: "", source: "" }, { id: "tds_deducted", label: "Less: TDS Deducted by Employer", type: "number", note: "From Form 16 Part A / Form 26AS", source: "Form 16 Part A" }, { id: "refund_payable", label: "Tax Refund / Tax Payable", type: "calculated", note: "Negative = Refund credited to bank account", source: "" }] },
+      { title: "Bank Account Details", desc: "For tax refund — must be pre-validated on income tax portal", fields: [{ id: "account_number", label: "Bank Account Number", type: "text", note: "Pre-validate on incometax.gov.in before filing", source: "" }, { id: "ifsc", label: "IFSC Code", type: "text", note: "11 characters", source: "" }, { id: "account_type", label: "Account Type", type: "select", note: "SB-Savings / CA-Current", source: "" }] },
+    ]
+  },
+  form16: {
+    number: "Form 16", name: "TDS Certificate from Employer", desc: "Annual certificate of salary paid and TDS deducted. Issued by employer to every employee.",
+    ay: "AY 2026-27", due: "Employer issues by 15 June 2026", tags: [{ t: "Issued by Employer", c: "green" }, { t: "Mandatory if TDS deducted", c: "orange" }, { t: "Basis for ITR filing", c: "green" }],
+    can: [], cannot: [],
+    schedules: [
+      { title: "Part A — TDS Summary (Employer Issued)", desc: "Quarter-wise TDS deducted and deposited to government. Generated from TRACES portal — don't accept handwritten Part A.", fields: [{ id: "employer_tan", label: "TAN of Employer (10 digits)", type: "text", note: "Cross-check with Form 26AS", source: "" }, { id: "employer_name", label: "Name & Address of Employer", type: "text", note: "", source: "" }, { id: "employee_pan", label: "Employee PAN", type: "text", note: "Verify your PAN is correct — wrong PAN means TDS not credited to you!", source: "" }, { id: "q1_tds", label: "Q1 TDS — April to June", type: "number", note: "Should match your Form 26AS exactly", source: "TRACES" }, { id: "q2_tds", label: "Q2 TDS — July to September", type: "number", note: "", source: "TRACES" }, { id: "q3_tds", label: "Q3 TDS — October to December", type: "number", note: "", source: "TRACES" }, { id: "q4_tds", label: "Q4 TDS — January to March", type: "number", note: "", source: "TRACES" }, { id: "total_tds", label: "TOTAL TDS Deducted & Deposited", type: "calculated", note: "⚠️ Cross-verify this with Form 26AS Part A", source: "" }] },
+      { title: "Part B — Salary Computation & Deductions", desc: "Detailed breakdown of salary, exemptions, deductions, and final tax. Use this to fill Schedule S in ITR.", fields: [{ id: "basic_da", label: "Basic Salary + DA", type: "number", note: "", source: "Salary Slip" }, { id: "hra", label: "HRA Received (annual)", type: "number", note: "", source: "Salary Slip" }, { id: "lta", label: "LTA Received (annual)", type: "number", note: "", source: "Salary Slip" }, { id: "special_allowance", label: "Special Allowance / Other Taxable Allowances", type: "number", note: "", source: "Salary Slip" }, { id: "gross_17_1", label: "Gross Salary u/s 17(1) — TOTAL", type: "calculated", note: "", source: "" }, { id: "hra_exempt", label: "Less: HRA Exemption u/s 10(13A)", type: "number", note: "Employer calculates based on rent receipts you submitted", source: "Form 12BB" }, { id: "lta_exempt", label: "Less: LTA Exemption u/s 10(5)", type: "number", note: "Based on actual travel bills submitted", source: "Form 12BB" }, { id: "net_salary_after_exemption", label: "Net Salary after Exemptions", type: "calculated", note: "", source: "" }, { id: "std_deduction_16", label: "Less: Standard Deduction u/s 16(ia)", type: "auto", note: "₹50K old / ₹75K new — automatic", source: "" }, { id: "professional_tax_pt", label: "Less: Professional Tax u/s 16(iii)", type: "number", note: "Shown on salary slip", source: "" }, { id: "income_from_salary_final", label: "Income from Salary (used in ITR)", type: "calculated", note: "", source: "" }, { id: "investments_declared", label: "Total Chapter VI-A Deductions Declared (80C etc.)", type: "number", note: "Based on Form 12BB submitted to employer", source: "Form 12BB" }, { id: "total_taxable_income_form16", label: "Total Taxable Income", type: "calculated", note: "", source: "" }, { id: "tax_computed", label: "Tax as per Slab on Taxable Income", type: "calculated", note: "", source: "" }, { id: "rebate_87a_f16", label: "Less: Rebate u/s 87A", type: "auto", note: "", source: "" }, { id: "cess_f16", label: "Add: Health & Education Cess 4%", type: "calculated", note: "", source: "" }, { id: "net_tax_f16", label: "Net Tax Payable", type: "calculated", note: "This is how much employer should have deducted all year", source: "" }, { id: "actual_tds_f16", label: "Actual TDS Deducted (matches Part A)", type: "number", note: "⚠️ If different from computed tax — difference = refund or extra tax due", source: "" }] },
+    ]
+  },
+  form26as: {
+    number: "Form 26AS", name: "Annual Tax Credit Statement", desc: "Your tax passbook — all TDS, advance tax, refunds against your PAN. Access at incometax.gov.in",
+    ay: "AY 2026-27", due: "Updated quarterly / real-time", tags: [{ t: "Download from IT Portal", c: "green" }, { t: "Cross-verify with Form 16", c: "orange" }, { t: "Basis for ITR prefill", c: "green" }],
+    can: [], cannot: [],
+    schedules: [
+      { title: "Part A — TDS on Salary", desc: "TDS deducted by employer on salary income. Cross-verify with Form 16 Part A.", fields: [{ id: "tan_employer", label: "TAN of Employer", type: "text", note: "10-digit TAN", source: "" }, { id: "employer_name_26as", label: "Name of Deductor (Employer)", type: "text", note: "", source: "" }, { id: "section_192", label: "Section Code", type: "text", note: "192 = TDS on Salary", source: "" }, { id: "gross_salary_26as", label: "Amount Paid (Gross Salary)", type: "number", note: "", source: "" }, { id: "tds_deducted_26as", label: "TDS Deducted (₹)", type: "number", note: "Should match Form 16 Part A EXACTLY", source: "" }, { id: "tds_deposited_26as", label: "TDS Deposited to Govt", type: "number", note: "If this is 0 but TDS was deducted — employer hasn't deposited! Report to IT dept.", source: "" }] },
+      { title: "Part A1 — TDS on Other Income", desc: "TDS on FD interest, rent, professional fees, commission etc.", fields: [{ id: "bank_tan", label: "TAN of Bank/Deductor", type: "text", note: "", source: "" }, { id: "income_type_26as", label: "Income Type & Section", type: "text", note: "194A=FD Interest, 194I=Rent, 194J=Professional, 194D=Insurance", source: "" }, { id: "amount_26as", label: "Amount Paid/Credited", type: "number", note: "", source: "" }, { id: "tds_a1", label: "TDS Deducted", type: "number", note: "Cross-check with bank's Form 16A", source: "" }] },
+      { title: "Part C — Advance Tax & Self Assessment Tax", desc: "Tax you paid yourself via Challan 280", fields: [{ id: "bsr_code_26as", label: "BSR Code of Bank", type: "text", note: "7 digit code", source: "Challan receipt" }, { id: "date_26as", label: "Date of Payment", type: "date", note: "", source: "" }, { id: "challan_no_26as", label: "Challan Serial No.", type: "text", note: "", source: "" }, { id: "amount_paid_26as", label: "Amount Paid", type: "number", note: "", source: "" }, { id: "type_tax", label: "Type", type: "text", note: "300=Self Assessment, 400=Advance Tax", source: "" }] },
+      { title: "Part D — Refund Details", desc: "Previous year refunds credited to your bank account", fields: [{ id: "refund_ay", label: "Assessment Year", type: "text", note: "", source: "" }, { id: "refund_amount", label: "Refund Amount", type: "number", note: "", source: "" }, { id: "refund_date", label: "Date of Refund", type: "date", note: "Credited to your pre-validated bank account", source: "" }] },
+      { title: "Part E — High Value Transactions (AIR)", desc: "High-value transactions reported by third parties — verify these match your actual transactions", fields: [{ id: "transaction_type", label: "Transaction Type", type: "text", note: "FD investment, MF purchase, property, credit card, LRS etc.", source: "" }, { id: "reporting_entity", label: "Reported By", type: "text", note: "Bank / Mutual Fund / Property Registrar", source: "" }, { id: "amount_air", label: "Amount (₹)", type: "number", note: "If wrong, provide feedback in AIS on incometax.gov.in", source: "" }] },
+    ]
+  },
+  form12bb: {
+    number: "Form 12BB", name: "Investment Declaration to Employer", desc: "Submit at start of FY to employer. Employer uses this to calculate TDS throughout year.",
+    ay: "FY 2025-26", due: "Submit in April–May 2025. Proof in December–January 2025-26.", tags: [{ t: "Submit to HR / Employer", c: "green" }, { t: "Start of Financial Year", c: "orange" }, { t: "Saves TDS deduction", c: "green" }],
+    can: [], cannot: [],
+    schedules: [
+      { title: "HRA Declaration", desc: "To claim HRA exemption — mandatory if you pay rent", fields: [{ id: "monthly_rent_bb", label: "Monthly Rent Paid (₹)", type: "number", note: "", source: "" }, { id: "landlord_name_bb", label: "Landlord Full Name", type: "text", note: "", source: "" }, { id: "landlord_address_bb", label: "Landlord Complete Address", type: "textarea", note: "", source: "" }, { id: "landlord_pan_bb", label: "Landlord PAN", type: "text", note: "⚠️ Mandatory if annual rent > ₹1,00,000/year (i.e. > ₹8,333/month)", source: "" }, { id: "property_address_bb", label: "Rented Property Full Address", type: "textarea", note: "With PIN code", source: "" }] },
+      { title: "LTA (Leave Travel Allowance)", desc: "Can claim twice in a block of 2 years. Travel within India only.", fields: [{ id: "lta_amount_bb", label: "LTA Amount to Claim (₹)", type: "number", note: "Equal to actual travel cost (airfare/train/bus) — submit bills", source: "" }, { id: "travel_from_bb", label: "Journey From", type: "text", note: "", source: "" }, { id: "travel_to_bb", label: "Journey To", type: "text", note: "", source: "" }, { id: "travel_mode_bb", label: "Mode of Travel", type: "select", note: "Air / Rail / Bus", source: "" }, { id: "journey_date_bb", label: "Date(s) of Journey", type: "date", note: "", source: "" }, { id: "family_members_bb", label: "Family Members Travelling", type: "text", note: "Self, spouse, 2 children (younger first), dependent parents/siblings", source: "" }] },
+      { title: "Section 80C Investments", desc: "Submit investment proofs — employer reduces TDS accordingly", fields: [{ id: "lic_premium_bb", label: "LIC Premium (₹/year)", type: "number", note: "Attach premium receipt", source: "LIC Receipt" }, { id: "ppf_bb", label: "PPF Contribution (₹/year)", type: "number", note: "Attach PPF passbook/statement", source: "PPF Passbook" }, { id: "elss_bb", label: "ELSS Mutual Fund (₹/year)", type: "number", note: "Attach account statement", source: "MF Statement" }, { id: "epf_voluntary_bb", label: "Voluntary PF over mandatory (₹/year)", type: "number", note: "", source: "Payslip" }, { id: "school_fees_bb", label: "Children School Tuition Fees (₹/year)", type: "number", note: "Tuition fee only — not development/activity fee", source: "Fee Receipt" }, { id: "home_loan_principal_bb", label: "Home Loan Principal Repaid (₹/year)", type: "number", note: "", source: "Bank Statement" }, { id: "total_80c_bb", label: "Total 80C (Max ₹1,50,000)", type: "calculated", note: "", source: "" }] },
+      { title: "Section 80D — Health Insurance", desc: "Attach premium receipts", fields: [{ id: "premium_self_bb", label: "Health Insurance Premium — Self & Family (₹)", type: "number", note: "Max ₹25,000 (₹50,000 if senior citizen)", source: "Insurance Receipt" }, { id: "premium_parents_bb", label: "Health Insurance Premium — Parents (₹)", type: "number", note: "Max ₹25,000 (₹50,000 if parents are senior)", source: "Insurance Receipt" }, { id: "insurer_bb", label: "Insurance Company Name", type: "text", note: "", source: "" }, { id: "policy_no_bb", label: "Policy Number(s)", type: "text", note: "", source: "" }] },
+      { title: "Section 24(b) — Home Loan Interest", desc: "For home loan interest deduction", fields: [{ id: "lender_name_bb", label: "Lender Name (Bank/HFC)", type: "text", note: "", source: "" }, { id: "lender_address_bb", label: "Lender Address", type: "text", note: "", source: "" }, { id: "loan_amount_bb", label: "Original Loan Amount (₹)", type: "number", note: "", source: "Loan Sanction Letter" }, { id: "interest_cert_bb", label: "Annual Interest Amount (₹)", type: "number", note: "From bank's annual interest certificate. Max ₹2,00,000.", source: "Bank Certificate" }, { id: "property_address_hl_bb", label: "Property Address", type: "textarea", note: "", source: "" }] },
+    ]
+  },
+  form15g: {
+    number: "Form 15G", name: "Declaration for No TDS on Interest", desc: "Submit to bank to prevent TDS deduction on FD interest. For individuals below 60 years.",
+    ay: "AY 2026-27", due: "Submit at start of FY or when opening FD", tags: [{ t: "Below 60 years", c: "green" }, { t: "Submit to Bank / EPF / Post Office", c: "orange" }, { t: "Tax must be NIL", c: "orange" }],
+    can: ["Resident Individual below 60 years", "HUF (Hindu Undivided Family)", "Trust / AOP etc. (not company)", "Total tax liability on income is ZERO (nil)", "Total interest income ≤ basic exemption limit"],
+    cannot: ["NRI or non-resident", "Age 60 years or above (use Form 15H instead)", "If calculated tax on total income is positive / non-zero", "Company or firm"],
+    schedules: [
+      { title: "Form 15G Fields", desc: "One form per financial institution / deposit. Submit fresh each year.", fields: [{ id: "name_15g", label: "Name of Declarant (as per PAN)", type: "text", note: "", source: "" }, { id: "pan_15g", label: "PAN of Declarant", type: "text", note: "Mandatory — no PAN means 20% TDS", source: "" }, { id: "ay_15g", label: "Assessment Year", type: "text", note: "2026-27", source: "" }, { id: "residential_status_15g", label: "Residential Status", type: "text", note: "Must be 'Resident'", source: "" }, { id: "estimated_income_15g", label: "Estimated Income for which form filed (₹)", type: "number", note: "e.g. expected FD interest", source: "" }, { id: "estimated_total_income_15g", label: "Estimated Total Income from all sources (₹)", type: "number", note: "Must result in zero tax", source: "" }, { id: "num_forms_filed_15g", label: "No. of 15G forms filed this year", type: "number", note: "If filing at multiple banks/FDs", source: "" }, { id: "total_income_other_forms_15g", label: "Total income in other 15G forms filed", type: "number", note: "", source: "" }, { id: "declaration_15g", label: "Declaration", type: "checkbox", note: "I verify that I am a resident of India, my total tax is NIL, and the above particulars are true and correct.", source: "" }] },
+    ]
+  },
+  form15h: {
+    number: "Form 15H", name: "No-TDS Declaration for Senior Citizens", desc: "For senior citizens (60+) to prevent TDS deduction on interest income from bank FDs, savings etc.",
+    ay: "AY 2026-27", due: "Submit at start of FY or when opening FD", tags: [{ t: "Age 60+ years", c: "green" }, { t: "Submit to Bank / EPF", c: "orange" }, { t: "Tax must be NIL", c: "orange" }],
+    can: ["Resident individuals 60 years or above", "Tax liability on total income is ZERO (nil)"], cannot: ["Below 60 years (use Form 15G)", "NRI", "Non-zero tax liability"],
+    schedules: [
+      { title: "Form 15H Fields", desc: "Same fields as 15G but only for senior citizens (60+). Submit fresh every year.", fields: [{ id: "name_15h", label: "Name (as per PAN)", type: "text", note: "", source: "" }, { id: "pan_15h", label: "PAN", type: "text", note: "Mandatory", source: "" }, { id: "age_15h", label: "Age", type: "number", note: "Must be 60 or above", source: "" }, { id: "estimated_income_15h", label: "Estimated Income (FD interest etc.) (₹)", type: "number", note: "", source: "" }, { id: "estimated_total_income_15h", label: "Estimated Total Annual Income (₹)", type: "number", note: "Senior citizen threshold: ₹3L (old) / ₹3L (new)", source: "" }, { id: "prev_year_assessed_15h", label: "Were you assessed to tax in any of 6 previous years?", type: "select", note: "If yes, tax should still be NIL", source: "" }, { id: "declaration_15h", label: "Declaration", type: "checkbox", note: "I declare that I am a resident, age 60+, and my estimated tax liability is NIL.", source: "" }] },
+    ]
+  },
+  itr2: {
+    number: "ITR-2", name: "For Capital Gains & Foreign Assets", desc: "For individuals with capital gains, foreign assets, income above ₹50L, or multiple house properties",
+    ay: "AY 2026-27", due: "31 July 2026", tags: [{ t: "Capital Gains", c: "orange" }, { t: "Foreign Assets", c: "orange" }, { t: "Income > ₹50L", c: "orange" }, { t: "Directors", c: "green" }],
+    can: ["Salaried individual with capital gains", "LTCG above ₹1.25L from equity", "STCG on shares, property", "3 or more house properties", "Foreign assets / foreign income", "Director in any company", "Held unlisted equity shares", "Income above ₹50 lakh", "NRI / RNOR", "Agricultural income above ₹5,000"],
+    cannot: ["Business income (use ITR-3 or ITR-4)", "Partner in a firm"],
+    schedules: [
+      { title: "Schedule CG — Capital Gains (Detailed)", desc: "All types of capital gains — STCG and LTCG", fields: [{ id: "stcg_111a", label: "STCG on Equity / Equity MF u/s 111A @ 15%", type: "number", note: "Short term (<12 months) on listed shares/equity MF", source: "DMAT Statement / AIS" }, { id: "stcg_other", label: "STCG on Other Assets @ Slab Rate", type: "number", note: "Debt MF, gold sold within 3 years, property <24 months", source: "" }, { id: "ltcg_112a", label: "LTCG on Equity u/s 112A @ 10%", type: "number", note: "First ₹1.25L exempt. Tax @ 10% on amount above ₹1.25L", source: "DMAT Statement" }, { id: "ltcg_112_property", label: "LTCG on Property/Gold/Debt u/s 112 @ 20%", type: "number", note: "With indexation benefit. Property held >24 months.", source: "Sale Deed" }, { id: "cost_inflation_index", label: "Cost Inflation Index Year", type: "select", note: "Used for indexation. CII 2025-26 = will be notified", source: "" }] },
+      { title: "Schedule FA — Foreign Assets", desc: "Mandatory disclosure of foreign assets. Non-disclosure = Black Money Act penalties.", fields: [{ id: "country_fa", label: "Country Name & Code", type: "text", note: "", source: "" }, { id: "account_no_fa", label: "Account Number / Asset Code", type: "text", note: "", source: "" }, { id: "peak_balance_fa", label: "Peak Balance during FY (₹ equivalent)", type: "number", note: "", source: "Foreign bank statement" }, { id: "closing_balance_fa", label: "Closing Balance on 31 March", type: "number", note: "", source: "" }, { id: "income_from_fa", label: "Income from Foreign Asset (₹)", type: "number", note: "Taxable in India for residents", source: "" }] },
+      { title: "Schedule AL — Assets & Liabilities", desc: "Mandatory if income > ₹50 lakh. Declare all assets and liabilities.", fields: [{ id: "immovable_property_al", label: "Immovable Property (Cost) (₹)", type: "number", note: "Land + Buildings. Purchase cost, not market value.", source: "" }, { id: "financial_assets_al", label: "Financial Assets — Shares, Bonds, MF (₹)", type: "number", note: "Market value as on 31 March", source: "DMAT / MF Statement" }, { id: "vehicles_al", label: "Motor Vehicles (Cost) (₹)", type: "number", note: "", source: "" }, { id: "jewellery_al", label: "Jewellery / Gold / Bullion (₹)", type: "number", note: "", source: "" }, { id: "cash_al", label: "Cash in Hand above ₹50,000 (₹)", type: "number", note: "", source: "" }, { id: "loans_al", label: "Total Liabilities / Loans (₹)", type: "number", note: "Home loan, car loan, personal loan outstanding", source: "" }] },
+    ]
+  },
+  itr4: {
+    number: "ITR-4", name: "SUGAM — Presumptive Taxation", desc: "For freelancers, consultants, small businesses under presumptive scheme u/s 44AD / 44ADA",
+    ay: "AY 2026-27", due: "31 July 2026", tags: [{ t: "Freelancers / Consultants", c: "green" }, { t: "Small Business", c: "green" }, { t: "Turnover ≤ ₹3 Cr / Receipt ≤ ₹75L", c: "orange" }],
+    can: ["Resident Individual / HUF / Firm (not LLP)", "Business income u/s 44AD — turnover ≤ ₹3 crore", "Professional income u/s 44ADA — receipts ≤ ₹75 lakh", "Transport business u/s 44AE", "Salary + presumptive income", "Total income ≤ ₹50 lakh"],
+    cannot: ["LLP or company", "Income above ₹50 lakh", "Capital gains", "Foreign assets / NRI", "Director in company", "Choosing to declare actual income lower than presumptive (use ITR-3)"],
+    schedules: [
+      { title: "Schedule BP — Business / Professional Income", desc: "Presumptive income calculation — no need to maintain detailed books", fields: [{ id: "business_nature", label: "Nature of Business / Profession", type: "text", note: "e.g. IT Freelancer / Doctor / Lawyer / Trader", source: "" }, { id: "section_applicable", label: "Section", type: "select", note: "44AD (Business) / 44ADA (Professional) / 44AE (Transport)", source: "" }, { id: "gross_turnover_bp", label: "Gross Turnover / Total Receipts (₹)", type: "number", note: "Annual. For 44AD max ₹3Cr, for 44ADA max ₹75L", source: "Bank Statement / Invoices" }, { id: "cash_vs_digital", label: "Cash vs Digital Receipts Split", type: "text", note: "44AD: 6% presumptive on digital, 8% on cash receipts", source: "" }, { id: "presumptive_income", label: "Presumptive Income (Calculated by system)", type: "calculated", note: "44AD: 6%/8% of turnover. 44ADA: 50% of receipts.", source: "" }, { id: "higher_income_declared", label: "Declaring higher actual income?", type: "select", note: "If yes, maintain books of account u/s 44AA", source: "" }, { id: "actual_income_bp", label: "Actual Income (if higher than presumptive)", type: "number", note: "", source: "" }, { id: "no_audit_required", label: "Audit Status", type: "text", note: "If income > presumptive threshold — no audit needed under 44AB", source: "" }] },
+      { title: "All Deductions (same as ITR-1)", desc: "80C, 80D, HRA, NPS, home loan interest — all available for ITR-4 filers", fields: [{ id: "80c_itr4", label: "Section 80C Investments (Max ₹1.5L)", type: "number", note: "", source: "" }, { id: "80d_itr4", label: "Section 80D Health Insurance", type: "number", note: "", source: "" }, { id: "80ccd1b_itr4", label: "80CCD(1B) NPS Additional (Max ₹50K)", type: "number", note: "", source: "" }, { id: "other_deductions_itr4", label: "Other VI-A Deductions", type: "number", note: "", source: "" }] },
+    ]
+  },
+  ais: {
+    number: "AIS", name: "Annual Information Statement", desc: "More detailed than Form 26AS. Shows all financial transactions reported against your PAN. Access: incometax.gov.in → Services → AIS",
+    ay: "AY 2026-27", due: "Updated continuously / real-time", tags: [{ t: "More detailed than 26AS", c: "green" }, { t: "Auto-prefills ITR", c: "green" }, { t: "Give feedback if wrong", c: "orange" }],
+    can: [], cannot: [],
+    schedules: [
+      { title: "AIS Information Categories", desc: "All financial data visible to Income Tax Department about you", fields: [{ id: "tds_ais", label: "TDS / TCS Details", type: "info", note: "All TDS deducted against your PAN from all deductors", source: "" }, { id: "salary_ais", label: "Salary Income (reported by employer)", type: "info", note: "Employer files quarterly TDS return mentioning your salary", source: "" }, { id: "interest_ais", label: "Interest Income", type: "info", note: "Bank FD interest, savings interest, RD, bonds — all reported by banks", source: "" }, { id: "dividend_ais", label: "Dividend Income", type: "info", note: "From shares and mutual funds — reported by companies/RTA", source: "" }, { id: "securities_ais", label: "Securities / MF Transactions", type: "info", note: "All buy/sell transactions in shares and MF — from DMAT / BSE / NSE / AMFI", source: "" }, { id: "property_ais", label: "Property Transactions", type: "info", note: "Property purchase/sale reported by Sub-Registrar office", source: "" }, { id: "lrs_ais", label: "Foreign Remittances (LRS)", type: "info", note: "Overseas money transfers — reported by banks", source: "" }, { id: "epf_ais", label: "EPF Withdrawals", type: "info", note: "Reported by EPFO", source: "" }, { id: "gst_ais", label: "GST Turnover", type: "info", note: "If you have GST registration — turnover reported", source: "" }, { id: "credit_card_ais", label: "High-value Credit Card Spend", type: "info", note: "Annual spend above threshold reported by banks", source: "" }] },
+      { title: "How to Use AIS", desc: "Step-by-step guide to verify and use AIS", fields: [{ id: "step1_ais", label: "Step 1: Access AIS", type: "info", note: "Go to incometax.gov.in → Login → Services → Annual Information Statement (AIS)", source: "" }, { id: "step2_ais", label: "Step 2: Download AIS PDF", type: "info", note: "Download and cross-check each entry with your records", source: "" }, { id: "step3_ais", label: "Step 3: Give Feedback if Wrong", type: "info", note: "Click 'Optional' next to each entry → Select 'Information is incorrect' → Submit feedback. IT dept reviews.", source: "" }, { id: "step4_ais", label: "Step 4: Use for ITR Prefill", type: "info", note: "When filing ITR, the portal auto-prefills income from AIS. Review before accepting — don't blindly accept.", source: "" }, { id: "step5_ais", label: "Step 5: Conflict Resolution", type: "info", note: "If AIS and Form 26AS conflict — Form 26AS data prevails per CBDT circular.", source: "" }] },
+    ]
+  }
+};
+
+function renderForm(formKey) {
+  const form = FORMS_HTML[formKey];
+  if (!form) return;
+
+  let html = `
+    <div class="form-header">
+      <div>
+        <div class="form-number">${form.number}</div>
+      </div>
+      <div>
+        <div class="form-title">${form.name}</div>
+        <div class="form-subtitle">${form.desc}</div>
+        <div class="form-meta">
+          <span class="form-chip orange">${form.ay}</span>
+          <span class="form-chip green">Due: ${form.due}</span>
+          ${form.tags.map(t => `<span class="form-chip ${t.c}">${t.t}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (form.can.length || form.cannot.length) {
+    html += `<div class="eligibility-grid">`;
+    if (form.can.length) {
+      html += `<div class="elig-box can"><h4>✓ Who Can File</h4>`;
+      form.can.forEach(i => html += `<div class="elig-item"><span class="elig-dot y">✓</span><span>${i}</span></div>`);
+      html += `</div>`;
+    }
+    if (form.cannot.length) {
+      html += `<div class="elig-box cannot"><h4>✗ Who Cannot File</h4>`;
+      form.cannot.forEach(i => html += `<div class="elig-item"><span class="elig-dot n">✗</span><span>${i}</span></div>`);
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+
+  form.schedules.forEach((sched, si) => {
+    html += `<div class="schedule-card ${si === 0 ? 'open' : ''}" onclick="this.classList.toggle('open')">
+      <div class="schedule-header">
+        <div>
+          <div class="schedule-title">${sched.title}</div>
+          <div class="schedule-desc">${sched.desc}</div>
+        </div>
+        <span class="schedule-chevron">▶</span>
+      </div>
+      <div class="schedule-body">
+        <table class="field-table">
+          <thead><tr><th>Field ID</th><th>Label</th><th>Type</th><th>Notes & Source</th></tr></thead>
+          <tbody>`;
+    sched.fields.forEach(f => {
+      html += `<tr>
+        <td><span class="field-id">${f.id}</span></td>
+        <td>
+          <div class="field-label">${f.label}</div>
+          ${f.max ? `<div class="field-max">Max: ₹${Number(f.max).toLocaleString('en-IN')}</div>` : ''}
+          ${f.type === 'calculated' ? `<span class="field-calc">calculated</span>` : ''}
+          ${f.type === 'auto' ? `<span class="field-calc" style="color:var(--blue)">auto-fill</span>` : ''}
+        </td>
+        <td><span class="field-type">${f.type}</span></td>
+        <td>
+          ${f.note ? `<div class="field-note">${f.note}</div>` : ''}
+          ${f.source ? `<div class="field-source">Source: ${f.source}</div>` : ''}
+        </td>
+      </tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  });
+
+  document.getElementById('formContent').innerHTML = html;
+  document.querySelectorAll('.schedule-card').forEach(card => {
+    card.addEventListener('click', function(e) {
+      if (!e.target.closest('.schedule-body')) this.classList.toggle('open');
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// TAB SWITCHING
+// ─────────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const target = tab.dataset.tab;
+    document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+    document.getElementById('pane-' + target).classList.add('active');
+
+    // Sidebar visibility
+    document.getElementById('sidebar').style.display = target === 'forms' ? 'flex' : 'none';
+    if (target === 'forms') {
+      const activeForm = document.querySelector('.sidebar-item.active')?.dataset?.form || 'itr1';
+      renderForm(activeForm);
+    }
+  });
+});
+
+// sidebar clicks
+document.querySelectorAll('.sidebar-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+    item.classList.add('active');
+    renderForm(item.dataset.form);
+  });
+});
+
+// Initial render
+document.getElementById('sidebar').style.display = 'none';
+renderForm('itr1');
+</script>
+</body>
+</html>

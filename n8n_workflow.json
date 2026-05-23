@@ -1,0 +1,81 @@
+{
+  "name": "Ghar Ka CA — WhatsApp Tax Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Twilio WhatsApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "gharkaCA-whatsapp"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract Twilio message data\nconst body = $input.first().json.body;\nconst from = body.From || '';\nconst messageBody = body.Body || '';\nconst numMedia = parseInt(body.NumMedia || 0);\n\nreturn {\n  from,\n  message: messageBody.trim(),\n  hasMedia: numMedia > 0,\n  mediaUrl: body.MediaUrl0 || null,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "parse-message",
+      "name": "Parse Twilio Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.APP_URL }}/webhook/whatsapp",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "From", "value": "={{ $json.from }}" },
+            { "name": "Body", "value": "={{ $json.message }}" }
+          ]
+        },
+        "options": { "timeout": 30000 }
+      },
+      "id": "forward-to-app",
+      "name": "Forward to Express App",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "<Response></Response>",
+        "options": {
+          "responseHeaders": {
+            "entries": [{ "name": "Content-Type", "value": "text/xml" }]
+          }
+        }
+      },
+      "id": "twilio-response",
+      "name": "Respond to Twilio",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 160]
+    }
+  ],
+  "connections": {
+    "Twilio WhatsApp Webhook": {
+      "main": [[{ "node": "Parse Twilio Message", "type": "main", "index": 0 }]]
+    },
+    "Parse Twilio Message": {
+      "main": [
+        [{ "node": "Respond to Twilio", "type": "main", "index": 0 }],
+        [{ "node": "Forward to Express App", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "_comment": "IMPORT THIS INTO n8n: Settings → Import → paste this JSON. Set webhook URL in Twilio to: https://your-n8n-url/webhook/whatsapp-webhook"
+}
